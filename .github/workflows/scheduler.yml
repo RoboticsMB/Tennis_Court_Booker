@@ -37,5 +37,5 @@ jobs:
           playwright install
 
       - name: Run_Script
-        run: python Tennis_Court_Reservation_Script.py
+        run: python Reserve_Tennis_Courts.py
       
