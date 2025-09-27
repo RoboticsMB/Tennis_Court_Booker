@@ -1,0 +1,38 @@
+#Note this script runs 2 days in advance of court time (when reservations open)
+#SWAP to UTC-5 when Daylight savings occur
+name: Tennis_Court_Script
+
+on:
+  schedule:
+    # Run Script every Wednesday: 4pm, 5pm, 6pm, 7pm EST -> 20, 21,22,23 UTC
+    - cron: '0 20,21,22,23 * * 3'
+    # For Wednesday: 8pm
+    - cron: '0 0 * * 4'
+
+    #Run Script every Thursday: 7am, 8am, 9am EST -> 11,12,13 UTC
+    - cron: '0 11,12,13 * * 4'
+
+    #Run Script every Saturday: 5pm, 6pm, 7pm EST -> 21,22,23 UTC
+    - cron: '0 21,22,23 * * 6'
+
+    
+jobs:
+  run-script:
+    run-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set_Up_Python
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install_Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install playwright
+          playwright install
+
+      - name: Run_Script
+        run: python Tennis_Court_Reservation_Script.py
+      
