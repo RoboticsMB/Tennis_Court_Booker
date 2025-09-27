@@ -18,7 +18,7 @@ on:
     
 jobs:
   run-script:
-    run-on: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set_Up_Python
