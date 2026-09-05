@@ -3,7 +3,7 @@ name: Reserve tennis court
 on:
   schedule:
     # GitHub cron is UTC. Run every hour at :50; the application filters hours
-    # using America/New_York and waits for the exact local release boundary.
+    # using America/New_York and waits for the exact local release boundary. y
     - cron: "50 * * * *"
   workflow_dispatch:
     inputs:
