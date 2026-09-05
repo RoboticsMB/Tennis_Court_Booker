@@ -10,7 +10,7 @@ on:
       dry_run:
         description: Fill and verify the form without submitting
         type: boolean
-        default: true
+        default: false
 
 concurrency:
   group: tennis-court-reservation
