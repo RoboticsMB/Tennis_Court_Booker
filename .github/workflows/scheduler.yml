@@ -1,41 +1,50 @@
-#Note this script runs 2 days in advance of court time (when reservations open)
-#SWAP to UTC-5 when Daylight savings occur
-#Test
-name: Tennis_Court_Script
+name: Reserve tennis court
 
 on:
   schedule:
-    # Run Script every Wednesday: 4pm, 5pm, 6pm, 7pm EST -> 20, 21,22,23 UTC
-    - cron: '0 20,21,22,23 * * 3'
-    # For Wednesday: 8pm
-    - cron: '0 0 * * 4'
+    # GitHub cron is UTC. Run every hour at :50; the application filters hours
+    # using America/New_York and waits for the exact local release boundary.
+    - cron: "50 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Fill and verify the form without submitting
+        type: boolean
+        default: true
 
-    #Run Script every Thursday: 7am, 8am, 9am EST -> 11,12,13 UTC
-    - cron: '0 11,12,13 * * 4'
+concurrency:
+  group: tennis-court-reservation
+  cancel-in-progress: false
 
-    #Run Script every Saturday: 5pm, 6pm, 7pm EST -> 21,22,23 UTC
-    - cron: '0 21,22,23 * * 6'
-
-    
 jobs:
-  run-script:
+  reserve:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set_Up_Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
 
-      - name: Install_Dependencies
+      - name: Install application and Chromium
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install playwright
-          playwright install
+          python -m pip install .
+          python -m playwright install --with-deps chromium
 
-      - name: Run_Script
-        run: python Reserve_Tennis_Courts.py
-      
+      - name: Run reservation flow
+        run: python -m tennis_booker
+        env:
+          BOOKER_FIRST_NAME: ${{ secrets.BOOKER_FIRST_NAME }}
+          BOOKER_LAST_NAME: ${{ secrets.BOOKER_LAST_NAME }}
+          BOOKER_EMAIL: ${{ secrets.BOOKER_EMAIL }}
+          FAILURE_WEBHOOK_URL: ${{ secrets.FAILURE_WEBHOOK_URL }}
+          PREFERRED_COURTS: ${{ vars.PREFERRED_COURTS }}
+          RESERVATION_HOURS: ${{ vars.RESERVATION_HOURS || '8-22' }}
+          RESERVATION_TIMEZONE: America/New_York
+          BOOKING_DAYS_AHEAD: ${{ vars.BOOKING_DAYS_AHEAD || '2' }}
+          RELEASE_LEAD_MINUTES: ${{ vars.RELEASE_LEAD_MINUTES || '10' }}
+          LATE_START_GRACE_MINUTES: ${{ vars.LATE_START_GRACE_MINUTES || '10' }}
+          HEADLESS: "true"
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
