@@ -19,6 +19,7 @@ class ReservationDetails:
     last_name: str
     email: str
     preferred_courts: tuple[str, ...]
+    allow_any_available_court: bool = True
 
     @property
     def date_text(self) -> str:
@@ -79,7 +80,10 @@ def populate_and_verify_form(frame, details: ReservationDetails) -> FormSnapshot
     fields["email"].fill(details.email)
 
     court = _select_court_after_refresh(
-        frame, fields["court"], details.preferred_courts
+        frame,
+        fields["court"],
+        details.preferred_courts,
+        details.allow_any_available_court,
     )
 
     snapshot = FormSnapshot(
@@ -105,20 +109,23 @@ def populate_and_verify_form(frame, details: ReservationDetails) -> FormSnapshot
     return snapshot
 
 
-def _select_court_after_refresh(frame, select, preferences: tuple[str, ...]) -> CourtOption:
-    normalized = [court.strip().lower() for court in preferences]
+def _select_court_after_refresh(
+    frame,
+    select,
+    preferences: tuple[str, ...],
+    allow_any_available: bool,
+) -> CourtOption:
     for _attempt in range(3):
         try:
             frame.wait_for_function(
-                """preferred => [...document.querySelectorAll('#assignment1 option')]
-                    .some(option => preferred.includes(option.textContent.trim().toLowerCase())
-                        && option.value && !option.disabled)""",
-                arg=normalized,
+                """() => [...document.querySelectorAll('#assignment1 option')]
+                    .some(option => option.value && option.value.toLowerCase() !== 'unassigned'
+                        && option.textContent.trim() !== '---' && !option.disabled)""",
                 timeout=10000,
             )
         except PlaywrightTimeoutError as exc:
             raise NoAvailableCourtError(
-                "None of the preferred courts became selectable after Planyo refreshed availability"
+                "No court became selectable after Planyo refreshed availability"
             ) from exc
 
         court = select_preferred_court(
@@ -131,6 +138,7 @@ def _select_court_after_refresh(frame, select, preferences: tuple[str, ...]) -> 
                 )
                 for option in select.locator("option").all()
             ),
+            allow_any_available=allow_any_available,
         )
         select.select_option(value=court.value)
         frame.wait_for_timeout(400)

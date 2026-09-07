@@ -19,7 +19,7 @@ Required:
 
 `RESERVATION_HOURS` defaults to inclusive range `8-22` and also accepts a list such as `8,10,14,22`. `DRY_RUN=true` verifies without clicking. Production defaults to headless Chromium; set `HEADLESS=false` locally to watch it.
 
-The application waits for Planyo's asynchronous court refresh, then chooses the first preferred selectable option. Dropdown state cannot prove availability beyond what Planyo exposes.
+The application waits for Planyo's asynchronous court refresh, then chooses the first preferred selectable option. If all preferred courts are blocked by an event, `ALLOW_ANY_AVAILABLE_COURT=true` falls back to the first other selectable court. Set it to `false` to require a preferred court. Dropdown state cannot prove availability beyond what Planyo exposes.
 
 `FAILURE_WEBHOOK_URL` is optional. Failures send one JSON POST with `status: failure` and an error message. Successful runs send no notification because Planyo handles confirmation email.
 

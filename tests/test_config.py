@@ -10,6 +10,7 @@ def test_loads_required_values_and_safe_defaults():
     assert settings.first_name == "Ada"
     assert settings.preferred_courts == ("Court 3", "Court 1", "Court 2")
     assert settings.reservation_hours == tuple(range(8, 23))
+    assert settings.allow_any_available_court is True
     assert settings.booking_days_ahead == 2
     assert settings.timezone == "America/New_York"
     assert settings.release_lead_minutes == 10
@@ -19,12 +20,13 @@ def test_loads_required_values_and_safe_defaults():
 
 
 def test_accepts_explicit_hour_list_and_optional_values():
-    env = {**BASE_ENV, "RESERVATION_HOURS": "8,12,22", "BOOKING_DAYS_AHEAD": "3", "RELEASE_LEAD_MINUTES": "4", "LATE_START_GRACE_MINUTES": "7", "DRY_RUN": "yes", "HEADLESS": "false", "FAILURE_WEBHOOK_URL": "https://example.test/failure"}
+    env = {**BASE_ENV, "RESERVATION_HOURS": "8,12,22", "BOOKING_DAYS_AHEAD": "3", "RELEASE_LEAD_MINUTES": "4", "LATE_START_GRACE_MINUTES": "7", "ALLOW_ANY_AVAILABLE_COURT": "false", "DRY_RUN": "yes", "HEADLESS": "false", "FAILURE_WEBHOOK_URL": "https://example.test/failure"}
     settings = Settings.from_env(env)
     assert settings.reservation_hours == (8, 12, 22)
     assert settings.booking_days_ahead == 3
     assert settings.release_lead_minutes == 4
     assert settings.late_start_grace_minutes == 7
+    assert settings.allow_any_available_court is False
     assert settings.dry_run is True
     assert settings.headless is False
 

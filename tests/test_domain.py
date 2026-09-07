@@ -57,6 +57,26 @@ def test_selects_first_enabled_court_by_priority():
     assert select_preferred_court(("Court 3", "Court 1"), options).label == "Court 1"
 
 
+def test_falls_back_to_first_other_available_court():
+    options = (
+        CourtOption("---", "Unassigned"),
+        CourtOption("Court 1", "Court 1", enabled=False),
+        CourtOption("Court 4", "Court 4"),
+        CourtOption("Court 5", "Court 5"),
+    )
+
+    assert select_preferred_court(("Court 1", "Court 2"), options).label == "Court 4"
+
+
+def test_can_disable_fallback_to_unlisted_courts():
+    with pytest.raises(NoAvailableCourtError, match="No acceptable court"):
+        select_preferred_court(
+            ("Court 1",),
+            (CourtOption("Court 4", "Court 4"),),
+            allow_any_available=False,
+        )
+
+
 def test_court_matching_ignores_case_and_repeated_whitespace():
     option = select_preferred_court(
         ("Court One",), (CourtOption("  COURT   ONE ", "Court One"),)
@@ -67,8 +87,12 @@ def test_court_matching_ignores_case_and_repeated_whitespace():
 
 @pytest.mark.parametrize(
     "options",
-    [(), (CourtOption("Court 4", "Court 4"),), (CourtOption("Court 1", "", True),)],
+    [
+        (),
+        (CourtOption("---", "Unassigned"),),
+        (CourtOption("Court 1", "", True),),
+    ],
 )
-def test_fails_when_no_preferred_court_is_selectable(options):
-    with pytest.raises(NoAvailableCourtError, match="preferred courts"):
+def test_fails_when_no_real_court_is_selectable(options):
+    with pytest.raises(NoAvailableCourtError, match="No acceptable court"):
         select_preferred_court(("Court 1",), options)

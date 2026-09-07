@@ -64,17 +64,29 @@ def plan_release(
 
 
 def select_preferred_court(
-    preferred_courts: Iterable[str], options: Iterable[CourtOption]
+    preferred_courts: Iterable[str],
+    options: Iterable[CourtOption],
+    allow_any_available: bool = True,
 ) -> CourtOption:
-    available = {
-        _normalize(option.label): option
-        for option in options
-        if option.enabled and option.value.strip()
-    }
+    available_options = tuple(option for option in options if _is_selectable(option))
+    available = {_normalize(option.label): option for option in available_options}
     for preference in preferred_courts:
         if match := available.get(_normalize(preference)):
             return match
-    raise NoAvailableCourtError("None of the preferred courts are selectable")
+    if allow_any_available and available_options:
+        return available_options[0]
+    raise NoAvailableCourtError("No acceptable court is selectable")
+
+
+def _is_selectable(option: CourtOption) -> bool:
+    label = _normalize(option.label)
+    value = _normalize(option.value)
+    return (
+        option.enabled
+        and bool(value)
+        and label not in {"---", "choose a court", "unassigned"}
+        and value != "unassigned"
+    )
 
 
 def _normalize(value: str) -> str:

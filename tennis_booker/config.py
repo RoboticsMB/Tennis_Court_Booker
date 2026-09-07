@@ -77,6 +77,7 @@ class Settings:
     email: str
     preferred_courts: tuple[str, ...]
     reservation_hours: tuple[int, ...]
+    allow_any_available_court: bool = True
     entry_url: str = "https://recwell.umd.edu/facilities/court-reservations"
     timezone: str = "America/New_York"
     booking_days_ahead: int = 2
@@ -95,6 +96,7 @@ class Settings:
             email=_required(source, "BOOKER_EMAIL"),
             preferred_courts=_csv(source, "PREFERRED_COURTS"),
             reservation_hours=_hours(source),
+            allow_any_available_court=_boolean(source, "ALLOW_ANY_AVAILABLE_COURT", True),
             entry_url=source.get("RESERVATION_ENTRY_URL", cls.entry_url).strip(),
             timezone=_timezone(source),
             booking_days_ahead=_integer(source, "BOOKING_DAYS_AHEAD", 2),

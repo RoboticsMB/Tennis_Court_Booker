@@ -24,6 +24,7 @@ def main() -> None:
         settings.last_name,
         settings.email,
         settings.preferred_courts,
+        settings.allow_any_available_court,
     )
 
     with sync_playwright() as playwright:
