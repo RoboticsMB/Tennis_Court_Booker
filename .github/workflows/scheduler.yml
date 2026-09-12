@@ -3,7 +3,7 @@ name: Reserve tennis court
 on:
   schedule:
     # GitHub cron is UTC. Run every hour at :50; the application filters hours
-    # using America/New_York and waits for the exact local release boundary. y
+    # using America/New_York and waits for the exact local release boundary.
     - cron: "50 * * * *"
   workflow_dispatch:
     inputs:
@@ -36,12 +36,9 @@ jobs:
       - name: Run reservation flow
         run: python -m tennis_booker
         env:
-          BOOKER_FIRST_NAME: ${{ secrets.BOOKER_FIRST_NAME }}
-          BOOKER_LAST_NAME: ${{ secrets.BOOKER_LAST_NAME }}
-          BOOKER_EMAIL: ${{ secrets.BOOKER_EMAIL }}
+          BOOKING_PROFILES_JSON: ${{ secrets.BOOKING_PROFILES_JSON }}
           FAILURE_WEBHOOK_URL: ${{ secrets.FAILURE_WEBHOOK_URL }}
-          PREFERRED_COURTS: ${{ vars.PREFERRED_COURTS }}
-          RESERVATION_HOURS: ${{ vars.RESERVATION_HOURS || '8-22' }}
+          PREFERRED_COURTS: ${{ vars.PREFERRED_COURTS || 'Court 8,Court 7,Court 6' }}
           RESERVATION_TIMEZONE: America/New_York
           BOOKING_DAYS_AHEAD: ${{ vars.BOOKING_DAYS_AHEAD || '2' }}
           RELEASE_LEAD_MINUTES: ${{ vars.RELEASE_LEAD_MINUTES || '10' }}

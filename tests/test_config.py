@@ -7,7 +7,8 @@ BASE_ENV = {"BOOKER_FIRST_NAME": "Ada", "BOOKER_LAST_NAME": "Lovelace", "BOOKER_
 
 def test_loads_required_values_and_safe_defaults():
     settings = Settings.from_env(BASE_ENV)
-    assert settings.first_name == "Ada"
+    assert settings.profiles[0].first_name == "Ada"
+    assert settings.profiles[0].matches(0, 8)
     assert settings.preferred_courts == ("Court 3", "Court 1", "Court 2")
     assert settings.reservation_hours == tuple(range(8, 23))
     assert settings.allow_any_available_court is True
@@ -57,3 +58,45 @@ def test_rejects_negative_booking_horizon():
 def test_rejects_unknown_timezone():
     with pytest.raises(ConfigurationError, match="RESERVATION_TIMEZONE"):
         Settings.from_env({**BASE_ENV, "RESERVATION_TIMEZONE": "Mars/Olympus"})
+
+
+def test_loads_profiles_from_json_and_derives_union_of_hours():
+    profiles = """[
+      {"first_name":"A","last_name":"One","email":"a@example.com",
+       "schedule":{"monday":["16-20"]}},
+      {"first_name":"B","last_name":"Two","email":"b@example.com",
+       "schedule":{"friday":["9-16","20-23"]}}
+    ]"""
+    settings = Settings.from_env(
+        {"BOOKING_PROFILES_JSON": profiles, "PREFERRED_COURTS": "Court 8,Court 7"}
+    )
+
+    assert len(settings.profiles) == 2
+    assert settings.reservation_hours == tuple(range(9, 23))
+
+
+def test_loads_profiles_from_file(tmp_path):
+    path = tmp_path / "profiles.json"
+    path.write_text(
+        '[{"first_name":"A","last_name":"One","email":"a@example.com",'
+        '"schedule":{"sunday":["10-12"]}}]',
+        encoding="utf-8",
+    )
+
+    settings = Settings.from_env(
+        {"BOOKING_PROFILES_FILE": str(path), "PREFERRED_COURTS": "Court 8"}
+    )
+
+    assert settings.profiles[0].matches(6, 10)
+    assert settings.reservation_hours == (10, 11)
+
+
+def test_rejects_both_profile_sources():
+    with pytest.raises(ConfigurationError, match="not both"):
+        Settings.from_env(
+            {
+                "BOOKING_PROFILES_JSON": "[]",
+                "BOOKING_PROFILES_FILE": "profiles.json",
+                "PREFERRED_COURTS": "Court 8",
+            }
+        )

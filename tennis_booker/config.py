@@ -5,6 +5,8 @@ import os
 from typing import Mapping
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from .profiles import BookingProfile, all_scheduled_hours, legacy_profile, parse_profiles_json
+
 
 class ConfigurationError(ValueError):
     pass
@@ -72,9 +74,7 @@ def _timezone(env: Mapping[str, str]) -> str:
 
 @dataclass(frozen=True)
 class Settings:
-    first_name: str
-    last_name: str
-    email: str
+    profiles: tuple[BookingProfile, ...]
     preferred_courts: tuple[str, ...]
     reservation_hours: tuple[int, ...]
     allow_any_available_court: bool = True
@@ -90,12 +90,38 @@ class Settings:
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
         source = os.environ if env is None else env
+        profiles_json = source.get("BOOKING_PROFILES_JSON", "").strip()
+        profiles_file = source.get("BOOKING_PROFILES_FILE", "").strip()
+        if profiles_json and profiles_file:
+            raise ConfigurationError(
+                "Set BOOKING_PROFILES_JSON or BOOKING_PROFILES_FILE, not both"
+            )
+        if profiles_file:
+            try:
+                with open(profiles_file, encoding="utf-8") as file:
+                    profiles_json = file.read()
+            except OSError as exc:
+                raise ConfigurationError(
+                    f"Could not read BOOKING_PROFILES_FILE {profiles_file!r}: {exc}"
+                ) from exc
+
+        if profiles_json:
+            profiles = parse_profiles_json(profiles_json)
+            reservation_hours = all_scheduled_hours(profiles)
+        else:
+            reservation_hours = _hours(source)
+            profiles = (
+                legacy_profile(
+                    _required(source, "BOOKER_FIRST_NAME"),
+                    _required(source, "BOOKER_LAST_NAME"),
+                    _required(source, "BOOKER_EMAIL"),
+                    reservation_hours,
+                ),
+            )
         return cls(
-            first_name=_required(source, "BOOKER_FIRST_NAME"),
-            last_name=_required(source, "BOOKER_LAST_NAME"),
-            email=_required(source, "BOOKER_EMAIL"),
+            profiles=profiles,
             preferred_courts=_csv(source, "PREFERRED_COURTS"),
-            reservation_hours=_hours(source),
+            reservation_hours=reservation_hours,
             allow_any_available_court=_boolean(source, "ALLOW_ANY_AVAILABLE_COURT", True),
             entry_url=source.get("RESERVATION_ENTRY_URL", cls.entry_url).strip(),
             timezone=_timezone(source),

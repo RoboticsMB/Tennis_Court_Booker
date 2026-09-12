@@ -8,6 +8,7 @@ from playwright.sync_api import sync_playwright
 from .browser import ReservationDetails, navigate_to_form, populate_and_verify_form, submit_form
 from .config import Settings
 from .domain import BookingSlot
+from .profiles import profiles_for_slot
 
 CONFIRMATION = "SUBMIT LIVE RESERVATION"
 
@@ -15,14 +16,19 @@ CONFIRMATION = "SUBMIT LIVE RESERVATION"
 def main() -> None:
     settings = Settings.from_env()
     now = datetime.now(ZoneInfo(settings.timezone))
-    if now.hour not in settings.reservation_hours:
-        raise SystemExit(f"Current hour {now.hour} is not configured in RESERVATION_HOURS")
     slot = BookingSlot((now + timedelta(days=settings.booking_days_ahead)).date(), now.hour)
+    profiles = profiles_for_slot(settings.profiles, slot.reservation_date.weekday(), slot.hour)
+    if not profiles:
+        raise SystemExit(
+            f"No booking profile is scheduled for {slot.reservation_date:%A} at "
+            f"{slot.hour:02d}:00"
+        )
+    profile = profiles[0]
     details = ReservationDetails(
         slot,
-        settings.first_name,
-        settings.last_name,
-        settings.email,
+        profile.first_name,
+        profile.last_name,
+        profile.email,
         settings.preferred_courts,
         settings.allow_any_available_court,
     )

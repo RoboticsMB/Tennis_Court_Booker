@@ -12,6 +12,7 @@ from .browser import ReservationDetails, navigate_to_form, populate_and_verify_f
 from .config import Settings
 from .domain import plan_release
 from .notification import notify_failure
+from .profiles import profiles_for_slot
 
 LOGGER = logging.getLogger(__name__)
 
@@ -31,11 +32,23 @@ def run(settings: Settings) -> None:
         lead_minutes=settings.release_lead_minutes,
         late_grace_minutes=settings.late_start_grace_minutes,
     )
+    profiles = profiles_for_slot(
+        settings.profiles, plan.slot.reservation_date.weekday(), plan.slot.hour
+    )
+    if not profiles:
+        LOGGER.info(
+            "No booking profile is scheduled for %s at %02d:00; nothing to do",
+            plan.slot.reservation_date.strftime("%A"),
+            plan.slot.hour,
+        )
+        return
+
+    profile = profiles[0]
     details = ReservationDetails(
         plan.slot,
-        settings.first_name,
-        settings.last_name,
-        settings.email,
+        profile.first_name,
+        profile.last_name,
+        profile.email,
         settings.preferred_courts,
         settings.allow_any_available_court,
     )

@@ -5,6 +5,8 @@ import pytest
 
 from tennis_booker.app import wait_until
 from tennis_booker import app
+from tennis_booker.config import Settings
+from tennis_booker.profiles import legacy_profile
 
 
 def test_wait_until_reaches_release_boundary_with_short_sleeps():
@@ -49,3 +51,26 @@ def test_main_emits_no_success_notification(monkeypatch):
     )
 
     app.main()
+
+
+def test_run_skips_browser_when_no_profile_matches_target_slot(monkeypatch):
+    timezone = ZoneInfo("America/New_York")
+    plan = app.plan_release(
+        datetime(2026, 9, 6, 7, 50, tzinfo=timezone),
+        [8],
+        days_ahead=2,
+        lead_minutes=10,
+    )
+    settings = Settings(
+        profiles=(legacy_profile("A", "One", "a@example.com", [9]),),
+        preferred_courts=("Court 8",),
+        reservation_hours=(8,),
+    )
+    monkeypatch.setattr(app, "plan_release", lambda *_args, **_kwargs: plan)
+    monkeypatch.setattr(
+        app,
+        "sync_playwright",
+        lambda: pytest.fail("a browser must not start when nobody is scheduled"),
+    )
+
+    app.run(settings)

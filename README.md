@@ -12,12 +12,21 @@ The accepted start window defaults to ten minutes early through ten minutes late
 
 Use `.env.example` as a host/GitHub template. The application deliberately does not load `.env` files automatically.
 
-Required:
+For multiple people, set `BOOKING_PROFILES_FILE` to a protected JSON file based on
+`booking_profiles.example.json`. Each schedule range is end-exclusive: `16-20`
+creates 4, 5, 6, and 7 p.m. reservations. The application derives the required
+hours and selects the person whose schedule matches the reservation date and hour.
+Overlapping profiles are rejected during startup.
+
+The legacy single-person configuration remains supported with:
 
 - `BOOKER_FIRST_NAME`, `BOOKER_LAST_NAME`, `BOOKER_EMAIL`
 - `PREFERRED_COURTS`, ordered from most to least preferred
 
-`RESERVATION_HOURS` defaults to inclusive range `8-22` and also accepts a list such as `8,10,14,22`. `DRY_RUN=true` verifies without clicking. Production defaults to headless Chromium; set `HEADLESS=false` locally to watch it.
+`RESERVATION_HOURS` applies only to legacy mode. It defaults to inclusive range
+`8-22` and also accepts a list such as `8,10,14,22`. `DRY_RUN=true` verifies without
+clicking. Production defaults to headless Chromium; set `HEADLESS=false` locally to
+watch it.
 
 The application waits for Planyo's asynchronous court refresh, then chooses the first preferred selectable option. If all preferred courts are blocked by an event, `ALLOW_ANY_AVAILABLE_COURT=true` falls back to the first other selectable court. Set it to `false` to require a preferred court. Dropdown state cannot prove availability beyond what Planyo exposes.
 
@@ -55,4 +64,7 @@ python -m tennis_booker.manual_submit
 
 This can create a real reservation or trigger Planyo email verification. Anything except `SUBMIT LIVE RESERVATION` cancels safely. The command is separate from pytest and GitHub Actions, so automation cannot invoke it accidentally.
 
-Keep secrets out of source control. Work in complete phases and run the full suite before continuing.
+Keep secrets out of source control. For GitHub Actions, store the complete profile
+JSON as the `BOOKING_PROFILES_JSON` Actions secret. On a persistent Linux host,
+prefer `BOOKING_PROFILES_FILE` with a mode-`600` file owned by the account running
+the service. Work in complete phases and run the full suite before continuing.

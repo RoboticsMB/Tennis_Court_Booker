@@ -1,0 +1,20 @@
+[
+  {
+    "first_name": "First",
+    "last_name": "Person",
+    "email": "first@example.com",
+    "schedule": {
+      "monday": ["16-20"],
+      "wednesday": ["16-20"]
+    }
+  },
+  {
+    "first_name": "Second",
+    "last_name": "Person",
+    "email": "second@example.com",
+    "schedule": {
+      "friday": ["9-16", "20-23"],
+      "saturday": ["10-15"]
+    }
+  }
+]
