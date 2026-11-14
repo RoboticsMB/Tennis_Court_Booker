@@ -128,19 +128,30 @@ def _select_court_after_refresh(
                 "No court became selectable after Planyo refreshed availability"
             ) from exc
 
+        # Planyo replaces the option nodes while refreshing availability. Read
+        # every option in one browser-side operation so the list cannot become
+        # stale halfway through iteration.
+        options = select.locator("option").evaluate_all(
+            """options => options.map(option => ({
+                label: option.textContent,
+                value: option.value,
+                enabled: !option.disabled
+            }))"""
+        )
         court = select_preferred_court(
             preferences,
             (
-                CourtOption(
-                    option.inner_text(),
-                    option.get_attribute("value") or "",
-                    not option.is_disabled(),
-                )
-                for option in select.locator("option").all()
+                CourtOption(option["label"], option["value"], option["enabled"])
+                for option in options
             ),
             allow_any_available=allow_any_available,
         )
-        select.select_option(value=court.value)
+        try:
+            select.select_option(value=court.value, timeout=3000)
+        except PlaywrightTimeoutError:
+            # Availability refreshed after the atomic snapshot. Re-read it on
+            # the next attempt rather than using a stale court value.
+            continue
         frame.wait_for_timeout(400)
         if select.input_value() == court.value:
             return court
