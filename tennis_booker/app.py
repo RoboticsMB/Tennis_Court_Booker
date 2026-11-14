@@ -59,7 +59,15 @@ def run(settings: Settings) -> None:
             page = browser.new_page()
             form = navigate_to_form(page, settings.entry_url)
             wait_until(plan.release_at)
-            populate_and_verify_form(form, details)
+            snapshot = populate_and_verify_form(form, details)
+            LOGGER.info(
+                "Prepared %s reservation for %s at %02d:00 on %s using %s",
+                "dry-run" if settings.dry_run else "live",
+                f"{profile.first_name} {profile.last_name}",
+                plan.slot.hour,
+                plan.slot.reservation_date,
+                snapshot.court,
+            )
             if not settings.dry_run:
                 submit_form(form)
         finally:
